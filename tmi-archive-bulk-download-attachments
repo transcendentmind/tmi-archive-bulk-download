@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+
+attachments_dir=_attachments
+
+[[ -d "$attachments_dir" ]] && printf '%s\n' "[${BASH_SOURCE##*/}] Directory '$attachments_dir' already exists. Rename or delete it to continue." >&2 && exit 1
+
+# https://tmi-archive.com/talk/153
+wget -q --show-progress -P "$attachments_dir"/'Joy and Meditation' \
+  https://dharmatreasure.org/wp-content/uploads/Meditation%20and%20Joy%20Handout.pdf \
+  &&
+
+# https://tmi-archive.com/talk/336
+wget -q --show-progress -P "$attachments_dir"/'Light on Meditation #1' \
+  https://dharmatreasure.org/wp-content/uploads/MstrYatesFlyer994x768.jpg \
+  &&
+
+# https://tmi-archive.com/talk/698
+wget -q --show-progress -P "$attachments_dir"/'Light on Meditation #5' \
+  http://s3.amazonaws.com/dharmatreasure/april-2013-california-retreat-flyer.jpg \
+  http://s3.amazonaws.com/dharmatreasure/april-2013-california-retreat-poster.jpg \
+  &&
+
+# https://tmi-archive.com/talk/404
+wget -q --show-progress -P "$attachments_dir"/'Meditation and Insight' \
+  https://dharmatreasure.org/wp-content/uploads/Meditation-and-Insight-I.pdf \
+  https://dharmatreasure.org/wp-content/uploads/Meditation-and-Insight-II.pdf \
+  https://dharmatreasure.org/wp-content/uploads/Meditation-and-Insight-III.pdf \
+  https://dharmatreasure.org/wp-content/uploads/Insight_Slides-October2012.pdf \
+  https://dharmatreasure.org/wp-content/uploads/Meditation-and-Insight.pdf \
+  &&
+ 
+# https://tmi-archive.com/talk/249
+wget -q --show-progress -P "$attachments_dir"/'Meditation for Peace' \
+  http://s3.amazonaws.com/dharmatreasure/Cape%20Ann%20Retreat%20for%20Peace%20Handout%20.pdf \
+  &&
+ 
+# https://tmi-archive.com/talk/173
+wget -q --show-progress -P "$attachments_dir"/'The Jhanas_ The Original Practice of Mindfulness and Insight' \
+  https://dharmatreasure.org/wp-content/uploads/jhanas-and-mindfulness-handout.pdf \
+  https://dharmatreasure.org/wp-content/uploads/instructions-for-entering-jhana-leigh-brasington.pdf \
+  &&
+
+# https://tmi-archive.com/talk/269
+wget -q --show-progress -P "$attachments_dir"/'The Magic of Mindfulness' \
+  http://s3.amazonaws.com/dharmatreasure/Magic%20of%20Mindfulness%20Handout.pdf \
+  &&
+
+# https://tmi-archive.com/talk/130
+wget -q --show-progress -P "$attachments_dir"/'The Path to Awakening in Daily Life' \
+  http://s3.amazonaws.com/dharmatreasure/Awakening%20in%20Daily%20Life%20-%20Handout.pdf \
+  &&
+
+# https://tmi-archive.com/talk/72
+wget -q --show-progress -P "$attachments_dir"/'What Is Enlightenment_' \
+  https://dharmatreasure.org/wp-content/uploads/What%20Is%20Enlightenment%20Handout.pdf \
+  &&
+
+# https://tmi-archive.com/talk/473
+wget -q --show-progress -P "$attachments_dir"/'What the Buddha Thought' \
+  http://s3.amazonaws.com/dharmatreasure/20130322--what-the-buddha-thought--slides.pdf \
+  http://s3.amazonaws.com/dharmatreasure/20130322--what-the-buddha-thought--handout.pdf \
+  &&
+
+# https://tmi-archive.com/talk/317
+wget -q --show-progress -P "$attachments_dir"/'When Buddhadharma Came to the West' \
+  https://s3.amazonaws.com/dharmatreasure/BuddhadharmaWestPartI.pdf \
+  http://s3.amazonaws.com/dharmatreasure/BuddhadharmaWestPartsIIandIII.pdf \
+  &&
+
+exit

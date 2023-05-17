@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+while read -r i; do
+
+  extra=
+  [[ $i =~ ^(#[[:space:]]*[[:alnum:]_]+[[:space:]]*#[[:space:]]*)(.*) ]] && extra="${BASH_REMATCH[1]}" i="${BASH_REMATCH[2]}"
+  [[ $i = '#'* ]] && printf '%s\n' "$i" && continue
+
+  <<<"$i" grep -qFf <(sed -E 's/^#[[:space:]]*[[:alnum:]_]+[[:space:]]*#[[:space:]]*//; /^#/ d' "$2") && printf "$extra"'\x1b[7m%s\x1b[27m\n' "$i" || printf "$extra"'%s\n' "$i"
+
+done < "$1"

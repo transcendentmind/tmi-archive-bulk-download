@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+getopt -T > /dev/null
+[[ $? != 4 ]] && printf '%s\n' 'Enhanced getopt is required to run this script.' >&2
+
+opts=$(getopt -o 'y,n' -l 'overwrite,no-overwrite' -- "$@") || exit
+
+eval set -- "$opts"
+
+while true; do
+  case "$1" in
+    -y | --overwrite ) overwrite=1; shift ;;
+    -n | --no-overwrite ) no_overwrite=1; shift ;;
+    -- ) shift; break ;;
+    * ) printf '%s\n' 'Error parsing options' >&2 ;;
+  esac
+done
+
+cd "${BASH_SOURCE%/*}"
+
+for i in "$@"; do
+
+  title="${i%.*}" attachments_dir=_attachments/"$title"
+  audiobook_dir=_generated_audiobooks/"$title"
+
+  if [[ -d "$audiobook_dir" ]]; then
+    if [[ ! $overwrite && ! $no_overwrite ]]; then
+      while true; do
+        read -p "Directory '$audiobook_dir' already exists. Overwrite? [y/N] "
+        case "$REPLY" in
+          [Yy] ) overwrite=2; break ;;
+          [Nn] | * ) no_overwrite=2; break ;;
+        esac
+      done
+    fi
+    if [[ $overwrite ]]; then
+      [[ $overwrite = 2 ]] && overwrite=
+      rm -rv "$audiobook_dir"
+    fi
+    if [[ $no_overwrite ]]; then
+      [[ $no_overwrite = 1 ]] && printf '%s\n' "Directory '$audiobook_dir' already exists. Skipping." >&2
+      [[ $no_overwrite = 2 ]] && no_overwrite=
+      continue
+    fi
+  fi
+
+  mkdir -pv "$audiobook_dir"
+  [[ -d "$attachments_dir" ]] && cp -arnv "$attachments_dir" "$audiobook_dir"/_attachments
+
+  track_n=
+
+  playlist=$(sed -E '/^#[[:space:]]*[[:alnum:] ]+:/ d' "$i")
+  playlist_length=$(printf '%s\n' "$playlist" | wc -l)
+  track_n_zeros=$([[ ${#playlist_length} -gt 2 ]] && printf '%s' "${#playlist_length}" || printf '%s' '2')
+
+  while read -r line; do
+
+    extra=
+    extra_re='^(#[[:space:]]*)([[:alnum:]_]+)([[:space:]]*#[[:space:]]*)(.*)$'
+    if [[ $line =~ $extra_re ]]; then
+      extra=$(<<<"$line" sed -E 's/'"$extra_re"'/\2/')
+      extra="${extra^^}" extra="${extra:0:4}"
+      file_path=$(<<<"$line" sed -E 's/'"$extra_re"'/\4/')
+    else
+      file_path="$line"
+    fi
+
+    file_name="${file_path##*/}"
+    tmi_archive_file= tmi_archive_n=
+    if [[ -L "$file_path" ]]; then
+      tmi_archive_file=$(readlink "$file_path")
+      tmi_archive_n="${tmi_archive_file##*tmi-archive-}" tmi_archive_n="${tmi_archive_n%%-*}" tmi_archive_n=$(printf '%04d' "$tmi_archive_n")
+    fi
+    
+    ((track_n++))
+    track_n_formatted=$(printf '%0'"$track_n_zeros"'d' "$track_n")
+
+    cp -aHnv "$file_path" "$audiobook_dir"/"$track_n_formatted""${extra:+_$extra}""${tmi_archive_n:+_$tmi_archive_n}"-"$file_name"
+
+  done <<<"$playlist"
+
+done

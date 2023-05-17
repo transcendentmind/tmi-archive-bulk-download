@@ -1,0 +1,277 @@
+#!/usr/bin/env bash
+
+cd "${BASH_SOURCE%/*}"
+
+# --- Configuration ---
+
+# Setting options:
+
+# Comment out or set to an empty value to turn an option off.
+# Set to any value (`1` is conventional) to turn an option on.
+
+original=1           # Download original instead of cleaned audio.
+                     
+skip_duplicates=1    # Nearly half of the files on `tmi-archive.com`
+                     # are perfect duplicates. Skip them.
+                     
+                     # This was determined by means of
+                     # byte-by-byte comparison
+                     # with a tool called `fdupes`:
+                     # `https://github.com/adrianlopezroche/fdupes`
+                     
+                     # Output of `$ fdupes -1 .` run in the directory
+                     # contanining all files downloaded from
+                     # `https://tmi-archive.com/bulk-download`
+                     # is stored in the
+                     # `tmi-archive-bulk-download-dupes` file
+                     # (located in the same folder as this script),
+                     # which is used to determine
+                     # which files to skip during download.
+                     
+make_symlinks=1      # Create symlinks to `tmi-archive.com`'s files,
+                     # the symlinks' names being _original filenames_.
+                     # The original filenames are listed on
+                     # each individual file's page on `tmi-archive.com`.
+                     
+                     # For example, if you go to the page
+                     # `https://tmi-archive.com/talk/26`,
+                     # you can see the file's original name
+                     # in the right-hand side bar under 'Original file name'.
+                     # It is `emptiness18oct09.mp3`.
+                     # However, if you download the file, its name is
+                     # `tmi-archive-26-can-a-cessation-be-an-object-of-the-consciousness.mp3`.
+
+                     # Both sets of filenames contain useful information,
+                     # and it's worth keeping them both.
+
+                     # We can achieve this by creating a symlink
+                     # to the downloaded file, and use the original filename
+                     # as the name of the symlink.
+
+                     # This way, both the `tmi-archive.com`'s filenames
+                     # and the original filenames are preserved.
+                     
+                     # Playlists in the directory above
+                     # refer to these symlinks, and not to
+                     # the `tmi-archive.com`'s files,
+                     # so disabling this will prevent those playlists
+                     # from working.
+
+                     # The original filenames information
+                     # was retrieved from `tmi-archive.com`
+                     # and stored in the
+                     # `tmi-archive-bulk-download-orig-names` file
+                     # (located in the same folder as this script)
+
+                     # It was retrieved with the following code:
+
+                     # ```
+                     # for i in _files/_tmi_archive/*.mp3; do
+                     #
+                     #   o=$(
+                     #     sed -E '
+                     #         s/.*tmi-archive-([[:digit:]]*).*/https:\/\/tmi-archive.com\/talk\/\1/
+                     #       ' <<<"$i" |
+                     #       wget -qi - -O - |
+                     #       sed -En '
+                     #         /Original file name/ { n; s/.*<td>([^<]*)<\/td>.*/\1/p }
+                     #       '
+                     #   )
+                     #
+                     #   printf '%q %q\n' "${i##*/}" "${o:-original_filename_not_found-$i}"
+                     #
+                     # done > tmi-archive-bulk-download-orig-names
+                     # ```
+
+export_original_metadata=1
+
+                     # Export metadata from the original audio files
+                     # (so that, for instance, the metadata
+                     # on downloaded files could be modified
+                     # without losing access to the original metadata).
+
+                     # If this option is on, the metadata
+                     # is saved to the folder named `_original_metadata`,
+                     # located in the same folder as this script.
+
+original_metadata_make_symlinks=1
+
+                     # Create symlinks to the original metadata of
+                     # `tmi-archive.com`'s audio files --
+                     # analogously to what the `make_symlinks` option
+                     # does for the audio files.
+                     # Only applies if `export_original_metadata` is enabled.
+
+                     # See the `make_symlinks` option for more information.
+
+fix_duration=1       # In most (if not all) files in this set,
+                     # duration information isn't properly encoded,
+                     # which gives rise to a warning message upon playback.
+                     # Fix it.
+                     
+                     # For example, here is a warning message
+                     # that you get when playing the files back with `mpv`:
+                     # `[ffmpeg/demuxer] mp3: Estimating duration from bitrate, this may be inaccurate`
+                     
+                     # Remuxing the files with `ffmpeg` fixes the issue.
+                     
+                     # This does not re-encode the audio,
+                     # so it doesn't affect the quality
+                     # (the data simply gets copied over to a new file),
+                     # and all metadata is preserved.
+                     
+                     # More info: `https://stackoverflow.com/a/55084389`
+
+delete_originals=1   # Delete original files after remuxing.
+                     # Only applies if `fix_duration` is enabled.
+
+                     # The original files get renamed to `<filename>.orig.<ext>`
+
+# --- End Configuration ---
+
+files_dir=_files
+tmi_archive_dir=_tmi_archive
+original_metadata_dir=_original_metadata
+
+files_tmi_archive_dir="$files_dir"/"$tmi_archive_dir"
+original_metadata_tmi_archive_dir="$original_metadata_dir"/"$tmi_archive_dir"
+
+[[ -d "$files_dir" ]] && printf '%s\n' "[${BASH_SOURCE##*/}] Directory '$files_dir' already exists. Rename or delete it to continue." >&2 && error=1
+[[ -d "$original_metadata_dir" ]] && printf '%s\n' "[${BASH_SOURCE##*/}] Directory '$original_metadata_dir' already exists. Rename or delete it to continue." >&2 && error=1
+[[ $error ]] && exit 1
+
+# --- Bulk Download ---
+
+# Downloading from `https://tmi-archive.com/bulk-download`.
+
+# Configuration:
+# `original` and `skip_duplicate` options are in effect here.
+
+printf '%s\n' "[${BASH_SOURCE##*/}] Downloading bulk:" >&2
+
+wget -qO - 'https://tmi-archive.com/bulk-download' | sed -En '/\/api\/v1\/talks\// s/.*href="([^"]*)".*/https:\/\/tmi-archive.com\1'"${original:+\/original}"'/p' | grep -vf <(sed -En "${skip_duplicates:+s/[^[:space:]]+//; :a; h; s/ ([^\/]\/)+tmi-archive-([[:digit:]]+)[^[:space:]]+.*/\/\2\//p; g; s/ [^[:space:]]+( .*)/\1/; t a}" tmi-archive-bulk-download-dupes) | wget -q --show-progress --content-disposition -P "$files_tmi_archive_dir" -i -
+
+# --- End Bulk Downoad ---
+
+# ===
+
+# --- Other Downloads ---
+
+# Downloading files that are linked to on `tmi-archive.com`,
+# but aren't listed on the bulk download page
+# (`https://tmi-archive.com/bulk-download`).
+
+# See the `tmi-archive-bulk-download-other` file
+# (located in the same folder as this script) 
+# for pages on which these links were found.
+
+printf '%s\n' "[${BASH_SOURCE##*/}] Downloading other:" >&2
+
+sed -E '/^#/ d; /^[[:space:]]*$/ d' tmi-archive-bulk-download-other | wget -q --show-progress -P "$files_dir" -i -
+
+# --- End Other Downloads ---
+
+# ===
+
+# --- Symlinking Original Filenames ---
+
+# Creating symlinks to files in the `_files/_tmi_archive` folder.
+
+# Configuration: 
+# `make_symlinks` option is in effect here.
+
+if [[ $make_symlinks ]]; then
+
+  printf '%s\n' "[${BASH_SOURCE##*/}] Retrieving original filenames and creating symlinks:" >&2
+
+  while read -a names; do
+    # ---
+    [[ -f "$files_tmi_archive_dir"/"${names[0]}" ]] &&
+    # This line prevents creation of broken links
+    # in case the file wasn't downloaded for some reason.
+    # Comment out to allow creation of broken links.
+    # ---
+      ln -sv "${files_tmi_archive_dir#$files_dir/}"/"${names[0]}" "${files_dir}"/"${names[1]}" | sed 's/^/[ln] /'
+  done < tmi-archive-bulk-download-orig-names
+
+fi
+
+# --- End Symlinking Original Filenames ---
+
+# ===
+
+# --- Exporting Original Metadata ---
+
+if [[ $export_original_metadata ]]; then
+
+  printf '%s\n' "[${BASH_SOURCE##*/}] Exporting original metadata:" >&2
+
+  mkdir -p "$original_metadata_tmi_archive_dir"
+
+  for i in "$files_tmi_archive_dir"/*.mp3 "$files_dir"/*.mp3; do
+
+    [[ -L "$i" ]] && continue
+
+    printf '%s\n' "[${BASH_SOURCE##*/}] Exporting metadata from '${i##*/}' with ffmpeg:" >&2 &&
+
+    ffmpeg -loglevel error -stats -t 0 -i "$i" -c copy -map 0 -map_metadata 0 -f ffmetadata "${i/$files_dir/$original_metadata_dir}".ffmetadata
+
+  done
+
+fi
+
+# --- End Exporting Original Metadata ---
+
+# ===
+
+# --- Symlinking Original Metadata ---
+
+# Creating symlinks to metadata files in the `_original_metadata/_tmi_archive` folder.
+
+# Configuration: 
+# `original_metadata_make_symlinks` option is in effect here.
+
+if [[ $export_original_metadata && $original_metadata_make_symlinks ]]; then
+
+  printf '%s\n' "[${BASH_SOURCE##*/}] Symlinking original metadata:" >&2
+
+  while read -a names; do
+    # ---
+    [[ -f "$original_metadata_tmi_archive_dir"/"${names[0]}".ffmetadata ]] &&
+    # This line prevents creation of broken links
+    # in case the metadata file wasn't created for some reason.
+    # Comment out to allow creation of broken links.
+    # ---
+      ln -sv "${original_metadata_tmi_archive_dir#$original_metadata_dir/}"/"${names[0]}".ffmetadata "${original_metadata_dir}"/"${names[1]}".ffmetadata | sed 's/^/[ln] /'
+  done < tmi-archive-bulk-download-orig-names
+
+fi
+
+# --- End Symlinking Original Metadata ---
+
+# ===
+
+# --- Fix Duration Information ---
+
+# Remuxing the files with `ffmpeg` to fix the
+# 'duration information may be inaccurate' warning message.
+
+# Configuration:
+# `fix_duration` and `delete_originals` options are in effect here.
+
+if [[ $fix_duration ]]; then
+
+  printf '%s\n' "[${BASH_SOURCE##*/}] Remuxing to fix the 'duration information may be inaccurate' warning message:" >&2
+
+  for i in "$files_tmi_archive_dir"/*.mp3 "$files_dir"/*.mp3; do
+    [[ -L "$i" ]] && continue
+    orig="${i%.*}".orig."${i##*.}"
+    mv "$i" "$orig" &&
+      printf '%s\n' "[${BASH_SOURCE##*/}] Remuxing '${i##*/}' with ffmpeg:" >&2 &&
+      ffmpeg -loglevel error -stats -i "$orig" -c copy "$i" &&
+      [[ $delete_originals ]] && rm "$orig"
+  done
+
+fi
+
+# --- End Fix Duration Information ---

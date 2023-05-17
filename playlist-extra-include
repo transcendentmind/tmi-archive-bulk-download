@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+re='^#[[:space:]]*[[:alnum:]_]+[[:space:]]*#[[:space:]]*'
+
+sed -E 's/'"$re"'//; /^#/ d' "$@"
