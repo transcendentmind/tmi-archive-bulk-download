@@ -16,6 +16,7 @@ Besides a terminal to run the scripts in, the following are required:
 * GNU coreutils
 * GNU sed
 * wget
+* ffmpeg
 * Enhanced getopt (part of the `util-linux` package)
 * git (optional)
 
@@ -29,9 +30,9 @@ The required packages should come with most Linux distros out of the box. If any
 
 On MacOS, the required packages can be installed via [MacPorts](https://macports.org) or [Homebrew](https://brew.sh). I made a [tutorial](https://www.youtube.com/watch?v=vC6ykcyTzLg) on my [Linguistic Mind](https://www.youtube.com/channel/UCZ_2W3ilvrS-20rk1reNIZA) YouTube channel explaining how to install and use those.
 
-On MacPorts, run `sudo port install coreutils gsed wget util-linux` to install required packages. You can also install the latest version of Bash by running `sudo port install bash` (recommended).
+On MacPorts, run `sudo port install coreutils gsed wget ffmpeg util-linux` to install required packages. You can also install the latest version of Bash by running `sudo port install bash` (recommended).
 
-On Homebrew, the commands are `brew install coreutils gsed wget util-linux`, `brew install bash`.
+On Homebrew, the commands are `brew install coreutils gsed wget ffmpeg util-linux`, `brew install bash`.
 
 After the installation has finished, make sure to add the `gnubin` directory to your `PATH` so that the GNU programs take precedence over the MacOS's built in ones.
 
