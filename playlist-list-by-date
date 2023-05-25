@@ -10,3 +10,5 @@ re='#[[:space:]]*Date:'
 
 grep -HZ "$re" "$@" | sed -E 's/^(.*)\x0#[[:space:]]*Date:[[:space:]]*(.*)$/\2\t\1/' | sort
 grep -HL "$re" "$@" | sed 's/^/\t&/'
+
+tabs -8
