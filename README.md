@@ -8,6 +8,10 @@ A `generate-audiobooks` script is provided to allow easy copying of recordings f
 
 See [below](#usage) for detailed usage notes for other scripts.
 
+## YouTube tutorial
+
+[![Transcendent Mind - Download all of Culadasa's talks from tmi-archive.com, organized into playlists](https://img.youtube.com/vi/tx90zOzUPyg/0.jpg)](https://www.youtube.com/watch?v=tx90zOzUPyg)
+
 ## Requirements
 
 Besides a terminal to run the scripts in, the following are required:
